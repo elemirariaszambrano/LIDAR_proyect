@@ -1,40 +1,29 @@
-import serial
 
-# Configura el puerto serie para comunicarse con el Scanse Sweep
-ser = serial.Serial('/dev/ttyUSB0', baudrate=115200, timeout=0.5)
-print("1")
+import rclpy
+from sensor_msgs.msg import LaserScan
 
-try:
-    # Envía el comando para iniciar el escaneo
-    ser.write(b'D\n')
-    print("2")
+class SweepScanseNode(rclpy.Node):
+  def __init__(self):
+    super().__init__("sweep_scanse_node")
 
-    # Lee los datos de escaneo del dispositivo
-    while True:
-        try:
-            line = ser.readline().decode().strip()
-            print("Received line:", line)  
-            if line.startswith('S'):
-                # Si la línea comienza con 'S', es un escaneo válido
-                # Separa los datos de escaneo y cuenta las mediciones
-                scan_data = line.split()[1:]
-                num_measurements = len(scan_data)
-                print(f'Got {num_measurements} measurements')
-                print("Data:", scan_data)  
-            elif line.startswith('E'):
-                break
-        except KeyboardInterrupt:
-            print("Programa interrumpido por el usuario")
-            break
+    self.subscription_ = self.create_subscription(
+      LaserScan,
+      "/scan",
+      10,
+      self.on_scan)
 
-except Exception as e:
-    print("Error:", e)
+  def on_scan(self, scan):
+    # Imprimir distancia y ángulo
+    for i in range(len(scan.ranges)):
+      print(f"Distancia: {scan.ranges[i]}")
+      print(f"Ángulo: {scan.angle_min + i * scan.angle_increment}")
+    
 
-finally:
-    # Envía el comando para detener el escaneo
-    ser.write(b'H\n')
-    # Cierra el puerto serie
-    ser.close()
+if __name__ == "__main__":
+  rclpy.init()
+  node = SweepScanseNode()
+  rclpy.spin(node)
+  rclpy.shutdown()
 
 
 
